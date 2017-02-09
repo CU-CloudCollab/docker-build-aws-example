@@ -3,7 +3,7 @@ FROM alpine:3.5
 # File Author / Maintainer
 MAINTAINER Cornell IT Cloud DevOps Team <cloud-devops@cornell.edu>
 
-# Expect AWS CLI credentials to be passwed in as build arguments
+# Expect AWS CLI credentials to be passed in as build arguments
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
 ARG AWS_SESSION_TOKEN

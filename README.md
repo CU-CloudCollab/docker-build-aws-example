@@ -28,46 +28,65 @@ Fortunately, at Cornell, there is an easy solution to obtain temporary AWS acces
 
 The [export-saml-creds.sh](export-saml-creds.sh) script in this repo parses your `~/.aws/credentials` file and outputs `export` commands to be `eval`ed in your shell to setup AWS credentials environment variables.
 
+If you use this process to build Docker images, their history will contain only temporary AWS credentials. After 60 minutes Docker images build in this way would be safe to push to a Docker Trusted Registry (e.g., dtr.cucloud.net) without fear of leaking valid AWS credentials. (Note that ideally the `dtr.cucloud.net/cs/samlapi` Docker image and [backing code](https://github.com/CU-CloudCollab/samlapi) that helps us obtain temporary credentials would be able to accept an argument for credential lifetime so that it can be made sorter than the default.)
+
 ## Running this Example
 
-This [Dockerfile](Dockerfile) in this repo simply uses the AWS CLI to list the buckets in your AWS account during the Docker build. That RUN command is a stand-in for any AWS CLI command that requires AWS credentials.
+The [Dockerfile](Dockerfile) in this repo simply uses the AWS CLI to list the buckets in your AWS account during the Docker build. That RUN command is a stand-in for any AWS CLI command that requires AWS credentials.
 
-1. Clone this repo.
+1. Clone this repo and cd into it.
 
   ```
   $ git clone https://github.com/CU-CloudCollab/docker-build-aws-example.git
-  
+  Cloning into 'docker-build-aws-example'...
+  remote: Counting objects: 5, done.
+  remote: Compressing objects: 100% (5/5), done.
+  remote: Total 5 (delta 0), reused 5 (delta 0), pack-reused 0
+  Unpacking objects: 100% (5/5), done.
+  $ cd docker-build-aws-example
+  ```
 
-1. Setup environment variables so that they can be passed into the build.
+1. Obtain temporary AWS credentials. See [Using Shibboleth for AWS API and CLI access](https://blogs.cornell.edu/cloudification/2016/07/05/using-shibboleth-for-aws-api-and-cli-access/) for directions. At the end of that, you will have a `[saml]` profile in your `~/.aws/credentials` file.
+
+1. Setup AWS environment variables so that they can be passed into the build.
 
   ```
-  $ export AWS_ACCESS_KEY_ID=<your_IAM_user_credentials_access_key>
-  $ export AWS_SECRET_ACCESS_KEY=<your_IAM_user_credentials_secret_key>
+  $ eval $(./export-saml-creds.sh)
+  # Confirm that you have the AWS variables set
+  $ env | grep AWS
+  AWS_SESSION_TOKEN=FQoDYXdzEHsaDFTD/rR4tPN7xaiJo...
+  AWS_DEFAULT_REGION=us-east-1
+  AWS_SECRET_ACCESS_KEY=6wDnmS8KmdRzf/V0AgHixYWF...
+  AWS_ACCESS_KEY_ID=ASIAJYAWFYJ5QQ....
   ```
 
-1. Build the image, passing in build arguments.
+1. Build an image from this Dockerfile, passing in build arguments.
 
   ```
-  $ docker build --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --rm --no-cache .
-  Sending build context to Docker daemon  34.3 kB
-  Step 1/7 : FROM alpine:3.5
+  $ docker build --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --build-arg AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN --rm --no-cache .
+  Sending build context to Docker daemon 65.54 kB
+  Step 1/8 : FROM alpine:3.5
    ---> 88e169ea8f46
-  Step 2/7 : MAINTAINER Cornell IT Cloud DevOps Team <cloud-devops@cornell.edu>
-   ---> Running in 25edb3a2915a
-   ---> 0328fc679884
-  Removing intermediate container 25edb3a2915a
-  Step 3/7 : ARG AWS_ACCESS_KEY_ID
-   ---> Running in 494bf4ed9394
-   ---> 483e7b57cef7
-  Removing intermediate container 494bf4ed9394
-  Step 4/7 : ARG AWS_SECRET_ACCESS_KEY
-   ---> Running in 507cff61a43b
-   ---> 99087984b4ac
-  Removing intermediate container 507cff61a43b
-  Step 5/7 : RUN wget "s3.amazonaws.com/aws-cli/awscli-bundle.zip" -O "awscli-bundle.zip" &&   unzip awscli-bundle.zip &&   apk add --update python &&   rm /var/cache/apk/* &&   ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws &&   rm awscli-bundle.zip &&   rm -rf awscli-bundle
-   ---> Running in 3e1efcb56200
-  Connecting to s3.amazonaws.com (54.231.49.83:80)
-  awscli-bundle.zip     30% |*********                      |  2531k  0:00:02 ETA
+  Step 2/8 : MAINTAINER Cornell IT Cloud DevOps Team <cloud-devops@cornell.edu>
+   ---> Running in dab4980a8e67
+   ---> 00340484b844
+  Removing intermediate container dab4980a8e67
+  Step 3/8 : ARG AWS_ACCESS_KEY_ID
+   ---> Running in 79f1a1ce390c
+   ---> ca928c5fea5d
+  Removing intermediate container 79f1a1ce390c
+  Step 4/8 : ARG AWS_SECRET_ACCESS_KEY
+   ---> Running in 6592f5e4a2f2
+   ---> d273e51d36b9
+  Removing intermediate container 6592f5e4a2f2
+  Step 5/8 : ARG AWS_SESSION_TOKEN
+   ---> Running in 61df97534672
+   ---> 47b698fc3d45
+  Removing intermediate container 61df97534672
+  Step 6/8 : RUN wget "s3.amazonaws.com/aws-cli/awscli-bundle.zip" -O "awscli-bundle.zip" &&   unzip awscli-bundle.zip &&   apk add --update python &&   rm /var/cache/apk/* &&   ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws &&   rm awscli-bundle.zip &&   rm -rf awscli-bundle
+   ---> Running in 766fa4886660
+  Connecting to s3.amazonaws.com (54.231.82.108:80)
+  awscli-bundle.zip     36% |***********                    |  3027k  0:00:01 ETA
   awscli-bundle.zip    100% |*******************************|  8317k  0:00:00 ETA
 
   Archive:  awscli-bundle.zip
@@ -88,36 +107,36 @@ This [Dockerfile](Dockerfile) in this repo simply uses the AWS CLI to list the b
     inflating: awscli-bundle/packages/futures-3.0.5.tar.gz
     inflating: awscli-bundle/packages/docutils-0.13.1.tar.gz
     inflating: awscli-bundle/packages/virtualenv-15.1.0.tar.gz
-    fetch http://dl-cdn.alpinelinux.org/alpine/v3.5/main/x86_64/APKINDEX.tar.gz
-    fetch http://dl-cdn.alpinelinux.org/alpine/v3.5/community/x86_64/APKINDEX.tar.gz
-    (1/10) Installing libbz2 (1.0.6-r5)
-    (2/10) Installing expat (2.2.0-r0)
-    (3/10) Installing libffi (3.2.1-r2)
-    (4/10) Installing gdbm (1.12-r0)
-    (5/10) Installing ncurses-terminfo-base (6.0-r7)
-    (6/10) Installing ncurses-terminfo (6.0-r7)
-    (7/10) Installing ncurses-libs (6.0-r7)
-    (8/10) Installing readline (6.3.008-r4)
-    (9/10) Installing sqlite-libs (3.15.2-r0)
-    (10/10) Installing python2 (2.7.13-r0)
+  fetch http://dl-cdn.alpinelinux.org/alpine/v3.5/main/x86_64/APKINDEX.tar.gz
+  fetch http://dl-cdn.alpinelinux.org/alpine/v3.5/community/x86_64/APKINDEX.tar.gz
+  (1/10) Installing libbz2 (1.0.6-r5)
+  (2/10) Installing expat (2.2.0-r0)
+  (3/10) Installing libffi (3.2.1-r2)
+  (4/10) Installing gdbm (1.12-r0)
+  (5/10) Installing ncurses-terminfo-base (6.0-r7)
+  (6/10) Installing ncurses-terminfo (6.0-r7)
+  (7/10) Installing ncurses-libs (6.0-r7)
+  (8/10) Installing readline (6.3.008-r4)
+  (9/10) Installing sqlite-libs (3.15.2-r0)
+  (10/10) Installing python2 (2.7.13-r0)
   Executing busybox-1.25.1-r0.trigger
   OK: 51 MiB in 21 packages
   Running cmd: /usr/bin/python virtualenv.py --python /usr/bin/python /usr/local/aws
   Running cmd: /usr/local/aws/bin/pip install --no-index --find-links file:///awscli-bundle/packages awscli-1.11.45.tar.gz
   You can now run: /usr/local/bin/aws --version
-   ---> f516011b96b5
-  Removing intermediate container 3e1efcb56200
-  Step 6/7 : RUN aws s3 ls
-   ---> Running in 1e7130603335
+   ---> c0294b494cce
+  Removing intermediate container 766fa4886660
+  Step 7/8 : RUN aws s3 ls
+   ---> Running in 406d6e88116a
   2016-09-01 19:45:11 my-sample-bucket-1
   2016-07-12 16:15:47 my-sample-bucket-2
-   ---> c1aecd4dc9a1
-  Removing intermediate container 1e7130603335
-  Step 7/7 : CMD /bin/sh
-   ---> Running in 62d49b11aaf9
-   ---> d8dfd80d0317
-  Removing intermediate container 62d49b11aaf9
-  Successfully built d8dfd80d0317
+   ---> eaeb92eab02b
+  Removing intermediate container 406d6e88116a
+  Step 8/8 : CMD /bin/sh
+   ---> Running in 7fe236d38c12
+   ---> df2079c6be1d
+  Removing intermediate container 7fe236d38c12
+  Successfully built df2079c6be1d
   ```
 
   Pay attention to step 6 of the build output above. That is where the AWS CLI is invoked, and in this example it shows the output from that as:
@@ -127,16 +146,16 @@ This [Dockerfile](Dockerfile) in this repo simply uses the AWS CLI to list the b
   2016-07-12 16:15:47 my-sample-bucket-2
   ```
 
-  If you hadn't passed in the AWS credentials as build arguments, you would have seen a message in the build output like:
+  If you hadn't passed in AWS credentials as build arguments, you would have seen a message in the build output like:
 
   ```
   Unable to locate credentials. You can configure credentials by running "aws configure".
   The command '/bin/sh -c aws s3 ls' returned a non-zero code: 255
   ```
 
-  In that case, the build failed because it could not execute the RUN command successfully.
+  In that case, the build would have failed because it could not execute the RUN command successfully.
 
 
-## Notes
+## Additional Information
 
 This example uses [official Docker Alpine images](https://hub.docker.com/_/alpine/) as the base image simply to make the build process faster. The same approach can be used with any other Docker base image.
