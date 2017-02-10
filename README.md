@@ -60,7 +60,7 @@ The [Dockerfile](Dockerfile) in this repo simply uses the AWS CLI to list the bu
   AWS_ACCESS_KEY_ID=ASIAJYAWFYJ5QQ....
   ```
 
-1. Build an image from this Dockerfile, passing in build arguments.
+1. Build an image from this Dockerfile, passing in build arguments. Note that the point of passing values to build arguments using environmnet variables is simply so that you can repeat the build command multiple times. **It does not obfuscate them in the Docker image history or layer metadata.**
 
   ```
   $ docker build --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --build-arg AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN --rm --no-cache .
