@@ -28,7 +28,7 @@ Fortunately, at Cornell, there is an easy solution to obtain temporary AWS acces
 
 The [export-saml-creds.sh](export-saml-creds.sh) script in this repo parses your `~/.aws/credentials` file and outputs `export` commands to be `eval`ed in your shell to setup AWS credentials environment variables.
 
-If you use this process to build Docker images, their history will contain only temporary AWS credentials. After 60 minutes Docker images build in this way would be safe to push to a Docker Trusted Registry (e.g., dtr.cucloud.net) without fear of leaking valid AWS credentials. (Note that ideally the `dtr.cucloud.net/cs/samlapi` Docker image and [backing code](https://github.com/CU-CloudCollab/samlapi) that helps us obtain temporary credentials would be able to accept an argument for credential lifetime so that it can be made shorter than the default.)
+If you use this process to build Docker images, their history will contain only temporary AWS credentials. After 60 minutes, Docker images build in this way would be safe to push to a Docker Trusted Registry (e.g., dtr.cucloud.net) without fear of leaking valid AWS credentials. (Note that ideally the `dtr.cucloud.net/cs/samlapi` Docker image and [backing code](https://github.com/CU-CloudCollab/samlapi) that helps us obtain temporary credentials would be able to accept an argument for credential lifetime so that it can be made shorter than the default.)
 
 ## Running this Example
 
